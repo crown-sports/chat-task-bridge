@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling>=1.25,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "chat-task-bridge"
+version = "0.1.0"
+description = "Durable file tasks for Feishu and Weixin, with optional OpenSandbox execution"
+requires-python = ">=3.11"
+license = "MIT"
+readme = "README.md"
+dependencies = ["httpx>=0.27,<1", "cryptography>=43", "qrcode>=8,<9"]
+
+[project.optional-dependencies]
+feishu = ["lark-oapi==1.7.3"]
+sandbox = ["opensandbox==1.1.0"]
+dev = ["pytest>=8,<9", "pytest-asyncio>=0.24,<1", "ruff>=0.9,<1", "build>=1,<2"]
+
+[project.scripts]
+chatbridge = "chatbridge.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/chatbridge"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

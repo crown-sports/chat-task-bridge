@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+.env
+.env.*
+!.env.example
+.chatbridge/
+*.db
+*.db-*
+*.log
+state/
+demo-output/
+.DS_Store

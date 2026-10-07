@@ -1,0 +1,4 @@
+order_id,month,amount,customer
+1001,2026-10,29.90,Alice
+1002,2026-10,19.50,Bob
+1003,2026-11,15.00,Chen
