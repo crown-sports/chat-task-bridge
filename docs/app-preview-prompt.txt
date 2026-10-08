@@ -1,0 +1,19 @@
+Use case: ui-mockup.
+Create an original, polished product explainer image for the open source project Chat Task Bridge. Landscape 1920 x 1440 or similarly high resolution. Main goal: viewers immediately understand that they use it INSIDE the WeChat and Feishu mobile apps, by chatting and exchanging files. It must feel like actual mobile messaging app UI, not a web dashboard.
+Visual reference observations from public app listings and official Feishu help images: WeChat uses a light gray conversation background, compact top navigation with back arrow/title/ellipsis, right aligned green outgoing message bubbles, left aligned white replies, square avatars, voice/emoji/plus input row. Feishu uses a white conversation canvas, blue accents, sender names above compact mostly left aligned message blocks, a bot badge by the assistant name, bordered file cards, and a message composer with emoji/attachment controls. Make a fresh illustration inspired by these conventions, do not copy people's real conversations.
+Composition: light cool off-white background (#f3f5fa), dark navy editorial typography, generous spacing, two LARGE front-facing phones side by side of equal size with slim charcoal frames, very subtle shadows. No photorealistic hands. Outside label above left phone exact text "微信", above right phone exact text "飞书". A small "Chat Task Bridge" wordmark at top left. Main heading above phones exact text "在聊天 App 里，把文件交给助手". Small subtitle exact text "发文件 → 输入 /merge → 收到结果".
+Both phone titles: "文件助手".
+Left WeChat conversation:
+- outgoing two separate file cards named exactly "orders-a.csv" and "orders-b.csv", each with a small green CSV file icon;
+- an outgoing green text bubble exactly "/merge";
+- incoming white bot bubble exactly "已完成：6 行 → 5 行，去重 1 行";
+- incoming result file card exactly "merged.csv" with green CSV icon;
+- incoming result file card exactly "report.html" with a blue document icon.
+Right Feishu conversation:
+- sender name "我" with two file cards "orders-a.csv" and "orders-b.csv";
+- user message exactly "/merge";
+- sender name "文件助手" with a small "机器人" badge;
+- reply text exactly "已完成：6 行 → 5 行，去重 1 行";
+- clean received file cards "merged.csv" and "report.html".
+Show familiar status bar at top of each phone with 9:41 and battery/wifi indicators. Show a visible native message input bar at the bottom of each phone, placeholder "发送消息". Do NOT draw website navigation, graphs outside files, API keys, login QR codes, real person photos, natural-language-only commands, or a big green verified badge. Use simple abstract avatars. Ensure legible correct Chinese and exact Latin filenames, no gibberish. Frame and all contents completely visible. At bottom of full image include small legible exact disclaimer: "使用场景示意 · 非真实账号截图 · 需完成部署与授权".
+The image should convincingly communicate the planned supported interaction, not imply accounts have already been tested or an official partnership. Premium clean realistic UI presentation, restrained color, crisp typography.
