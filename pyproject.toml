@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "chat-task-bridge"
-version = "0.1.0"
+version = "0.2.0"
 description = "Durable file tasks for Feishu and Weixin, with optional OpenSandbox execution"
 requires-python = ">=3.11"
 license = "MIT"

@@ -3,4 +3,4 @@
 from .model import Attachment, DeliveryReceipt, InboundMessage, TaskResult
 
 __all__ = ["Attachment", "DeliveryReceipt", "InboundMessage", "TaskResult"]
-__version__ = "0.1.0"
+__version__ = "0.2.0"
