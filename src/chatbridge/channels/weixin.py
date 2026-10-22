@@ -18,6 +18,7 @@ import httpx
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
+from chatbridge import __version__
 from chatbridge.model import Attachment, DeliveryReceipt, InboundMessage, TaskResult
 
 API_BASE = "https://ilinkai.weixin.qq.com"
@@ -273,7 +274,7 @@ class WeixinChannel:
                 **payload,
                 "base_info": {
                     "channel_version": PROTOCOL_VERSION,
-                    "bot_agent": "ChatTaskBridge/0.1.0",
+                    "bot_agent": f"ChatTaskBridge/{__version__}",
                 },
             },
         )

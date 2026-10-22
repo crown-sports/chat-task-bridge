@@ -21,6 +21,12 @@ OUTPUT_TYPES = {
     "report.html": "text/html",
 }
 
+AUDIT_OUTPUT_TYPES = {
+    "audit.csv": "text/csv",
+    "summary.json": "application/json",
+    "report.html": "text/html",
+}
+
 
 class ExecutionUnconfirmed(ExecutionUncertain):
     """The transport did not prove that the command finished successfully."""
@@ -30,13 +36,14 @@ class ExecutionFailed(RuntimeError):
     """A terminal execution error with no provider response or secret in its message."""
 
 
-def _task_result(response: dict) -> TaskResult:
-    if set(response.get("files", {})) != set(OUTPUT_TYPES) or not isinstance(
+def _task_result(response: dict, *, audit: bool = False) -> TaskResult:
+    output_types = AUDIT_OUTPUT_TYPES if audit else OUTPUT_TYPES
+    if set(response.get("files", {})) != set(output_types) or not isinstance(
         response.get("text"), str
     ):
         raise ExecutionUnconfirmed("任务产物不完整。")
     attachments = []
-    for name, media_type in OUTPUT_TYPES.items():
+    for name, media_type in output_types.items():
         value = response["files"][name]
         if not isinstance(value, str):
             raise ExecutionUnconfirmed("任务产物格式无效。")
@@ -55,7 +62,9 @@ class LocalTableExecutor:
         request = table_task.make_request(
             [(item.name, item.content) for item in message.attachments], message.text
         )
-        return _task_result(await asyncio.to_thread(table_task.process, request))
+        return _task_result(
+            await asyncio.to_thread(table_task.process, request), audit=request["mode"] == "audit"
+        )
 
 
 class SandboxSession(Protocol):
@@ -109,7 +118,7 @@ class OpenSandboxTableExecutor:
                     response = json.loads(content)
                     if response.get("ok") is not True:
                         raise table_task.TableInputError(response.get("error", "CSV 处理失败。"))
-                    return _task_result(response["result"])
+                    return _task_result(response["result"], audit=request["mode"] == "audit")
                 except (
                     KeyError,
                     TypeError,

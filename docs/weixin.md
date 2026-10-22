@@ -2,7 +2,7 @@
 
 当前状态：已实现协议与离线模拟测试，尚未完成真实账号联调。它面向腾讯 iLink 个人微信接入；不是企业微信、公众号或通用微信机器人接口。第一版支持获准发送者的私聊文本、文件附件及文本／文件回复，不承诺群聊、语音、图片消息、地区跳转账号或任意账号可用。
 
-实现参考腾讯公开的 [API 协议](https://github.com/Tencent/openclaw-weixin/blob/main/docs/protocol.md)、[CDN URL 定义](https://github.com/Tencent/openclaw-weixin/blob/main/src/cdn/cdn-url.ts) 和 [文件消息格式](https://github.com/Tencent/openclaw-weixin/blob/main/src/messaging/send.ts)。代码围绕本项目的 `Channel` 合同独立编写，没有复制原工程的微信模块。腾讯文档说明它描述客户端行为，并非完整服务端保证，因此模拟测试不能替代账号验收。当前互操作参考版本字段为 `2.4.8`，本客户端声明 `ChatTaskBridge/0.1.0`。
+实现参考腾讯公开的 [API 协议](https://github.com/Tencent/openclaw-weixin/blob/main/docs/protocol.md)、[CDN URL 定义](https://github.com/Tencent/openclaw-weixin/blob/main/src/cdn/cdn-url.ts) 和 [文件消息格式](https://github.com/Tencent/openclaw-weixin/blob/main/src/messaging/send.ts)。代码围绕本项目的 `Channel` 合同独立编写，没有复制原工程的微信模块。腾讯文档说明它描述客户端行为，并非完整服务端保证，因此模拟测试不能替代账号验收。当前互操作参考版本字段为 `2.4.8`，本客户端声明 `ChatTaskBridge/0.2.0`。
 
 ## 接入边界
 

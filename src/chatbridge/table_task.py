@@ -20,7 +20,9 @@ MAX_ROWS = 50_000
 MAX_COLUMNS = 128
 MAX_CELLS = 1_000_000
 MAX_FIELD = 8_192
-USAGE = "/merge [key=订单号] [group=月份 sum=金额]；上传 UTF-8 CSV，列名须相同。"
+USAGE = (
+    "/merge [key=订单号] [group=月份 sum=金额] 或 /audit key=订单号；上传 UTF-8 CSV，列名须相同。"
+)
 
 
 class TableInputError(ValueError):
@@ -33,7 +35,7 @@ def parse_options(text: str) -> dict[str, str]:
         tokens = shlex.split(text.strip() or "/merge")
     except ValueError:
         raise TableInputError(USAGE) from None
-    if not tokens or tokens[0] != "/merge":
+    if not tokens or tokens[0] not in {"/merge", "/audit"}:
         raise TableInputError(USAGE)
     options: dict[str, str] = {}
     for token in tokens[1:]:
@@ -43,6 +45,8 @@ def parse_options(text: str) -> dict[str, str]:
         options[name] = value
     if ("group" in options) != ("sum" in options):
         raise TableInputError("group 和 sum 必须一起指定。" + USAGE)
+    if tokens[0] == "/audit" and set(options) != {"key"}:
+        raise TableInputError("审计需要 /audit key=列名，不接受汇总参数。")
     return options
 
 
@@ -68,13 +72,18 @@ def make_request(files: list[tuple[str, bytes]], text: str) -> dict:
         if "\x00" in value:
             raise TableInputError("CSV 包含不支持的空字符。")
         inputs.append({"name": name, "text": value})
-    return {"inputs": inputs, "options": options}
+    return {
+        "inputs": inputs,
+        "options": options,
+        "mode": shlex.split(text.strip() or "/merge")[0][1:],
+    }
 
 
-def _read_rows(request: dict) -> tuple[list[str], list[tuple[str, ...]], list[dict]]:
+def _read_rows(request: dict) -> tuple[list[str], list[tuple[str, ...]], list[dict], list[dict]]:
     header: list[str] = []
     rows: list[tuple[str, ...]] = []
     sources = []
+    locations = []
     for index, source in enumerate(request["inputs"], 1):
         reader = csv.reader(io.StringIO(source["text"], newline=""), strict=True)
         try:
@@ -94,6 +103,7 @@ def _read_rows(request: dict) -> tuple[list[str], list[tuple[str, ...]], list[di
             header = header or current
             positions = [current.index(name) for name in header]
             count = 0
+            previous_line = reader.line_num
             for row in reader:
                 if len(row) != len(header):
                     raise TableInputError(
@@ -102,13 +112,23 @@ def _read_rows(request: dict) -> tuple[list[str], list[tuple[str, ...]], list[di
                 if any(len(cell) > MAX_FIELD for cell in row):
                     raise TableInputError("单元格超过 8192 个字符。")
                 count += 1
+                locations.append(
+                    {
+                        "file_index": index,
+                        "source": source["name"],
+                        "record": count,
+                        "line_start": previous_line + 1,
+                        "line_end": reader.line_num,
+                    }
+                )
+                previous_line = reader.line_num
                 rows.append(tuple(row[position] for position in positions))
                 if len(rows) > MAX_ROWS or len(rows) * len(header) > MAX_CELLS:
                     raise TableInputError("数据超过 50000 行或 1000000 个单元格。")
         except csv.Error:
             raise TableInputError(f"第 {index} 个文件不是有效的 CSV。") from None
         sources.append({"name": source["name"], "rows": count})
-    return header, rows, sources
+    return header, rows, sources, locations
 
 
 def _deduplicate(rows: list[tuple[str, ...]], key_index: int | None) -> list[tuple[str, ...]]:
@@ -196,12 +216,101 @@ strong{{font-size:28px;display:block;color:#2259ca}}.bar{{background:#3775d4;hei
 {chart}<h2>保留记录预览</h2><p>最多显示前 20 行。完整结果见 merged.csv。</p><table><tr>{head}</tr>{body}</table></html>"""
 
 
+def _audit(header, rows, sources, locations, key):
+    """Report every conflicting occurrence without choosing or publishing a merged value."""
+    key_index = header.index(key)
+    groups = {}
+    issues = {}
+    for index, row in enumerate(rows):
+        identity = row[key_index]
+        if not identity.strip():
+            issues[index] = "missing_key"
+        else:
+            groups.setdefault(identity, []).append(index)
+    conflict_keys = 0
+    for members in groups.values():
+        if len({rows[index] for index in members}) > 1:
+            conflict_keys += 1
+            for index in members:
+                issues[index] = "conflicting_key"
+        else:
+            for index in members[1:]:
+                issues[index] = "exact_duplicate"
+    counts = Counter(issues.values())
+    audit_header = ["issue", "file_index", "source", "record", "line_start", "line_end"]
+    audit_header += ["value:" + name for name in header]
+    audit_rows = []
+    for index, issue in sorted(issues.items()):
+        locator = locations[index]
+        audit_rows.append(
+            [
+                issue,
+                str(locator["file_index"]),
+                locator["source"],
+                str(locator["record"]),
+                str(locator["line_start"]),
+                str(locator["line_end"]),
+                *rows[index],
+            ]
+        )
+    content = io.StringIO(newline="")
+    writer = csv.writer(content, lineterminator="\r\n")
+    escaped = 0
+    for row in [audit_header, *audit_rows]:
+        cells = [_safe_cell(value) for value in row]
+        escaped += sum(changed for _, changed in cells)
+        writer.writerow([value for value, _ in cells])
+    ready = not counts["missing_key"] and not counts["conflicting_key"]
+    summary = {
+        "mode": "audit",
+        "key": key,
+        "input_files": len(sources),
+        "input_rows": len(rows),
+        "sources": sources,
+        "conflict_keys": conflict_keys,
+        "conflict_rows": counts["conflicting_key"],
+        "missing_key_rows": counts["missing_key"],
+        "duplicate_rows": counts["exact_duplicate"],
+        "issue_rows": len(issues),
+        "merge_key_ready": ready,
+        "formula_cells_escaped": escaped,
+    }
+    head = "".join(f"<th>{html.escape(name)}</th>" for name in audit_header)
+    body = "".join(
+        "<tr>" + "".join(f"<td>{html.escape(value)}</td>" for value in row) + "</tr>"
+        for row in audit_rows[:100]
+    )
+    status = "去重键检查通过" if ready else "需要修正冲突或空键"
+    report = f"""<!doctype html><html lang="zh-CN"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<title>CSV 合并前审计</title><style>body{{font:16px/1.6 system-ui;max-width:1100px;margin:32px auto;padding:20px}}
+table{{border-collapse:collapse;display:block;overflow:auto}}td,th{{border:1px solid #ccc;padding:8px;white-space:pre-wrap}}</style>
+<h1>CSV 合并前审计：{status}</h1><p>{len(rows)} 条输入，{conflict_keys} 组冲突键，
+{counts["conflicting_key"]} 条冲突记录，{counts["missing_key"]} 条空键，{counts["exact_duplicate"]} 条重复。</p>
+<p>完整定位见 audit.csv；下表最多显示 100 条。record 为文件内数据记录序号（不含表头）；
+line_start / line_end 为原 CSV 的物理行范围，多行单元格可能跨行。file_index 区分同名文件。</p>
+<p>本次没有合并或覆盖数据，暂存文件仍保留。修正文件后先 /discard，再上传并 /merge。
+此检查仅验证去重键，不验证统计金额。CSV 已为 {escaped} 个公式风险单元格添加单引号。</p>
+<table><tr>{head}</tr>{body}</table></html>"""
+    return {
+        "text": f"审计完成：{status}；{conflict_keys} 组冲突键，{len(issues)} 条待核对记录。暂存文件已保留。",
+        "files": {
+            "audit.csv": "\ufeff" + content.getvalue(),
+            "summary.json": json.dumps(summary, ensure_ascii=False, indent=2),
+            "report.html": report,
+        },
+    }
+
+
 def process(request: dict) -> dict:
     """Merge compatible CSV schemas, reject key conflicts, and produce three artifacts."""
-    header, original, sources = _read_rows(request)
+    header, original, sources, locations = _read_rows(request)
     options = request["options"]
     if any(column not in header for column in options.values()):
         raise TableInputError("指定的列名不存在；请核对表头，列名区分大小写。")
+    if request.get("mode", "merge") == "audit":
+        return _audit(header, original, sources, locations, options["key"])
     key = options.get("key")
     rows = _deduplicate(original, header.index(key) if key is not None else None)
     groups = _aggregate(header, rows, options)

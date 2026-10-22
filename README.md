@@ -1,5 +1,7 @@
 # Chat Task Bridge
 
+当前版本 **0.2.0（预发布）**，通过 [GitHub Releases](https://github.com/crown-sports/chat-task-bridge/releases/tag/v0.2.0) 提供 wheel、源码归档和 `SHA256SUMS`；不依赖 PyPI 发布。安装说明固定到此版本。
+
 **把文件发进微信或飞书，让 Python 处理器完成任务，再把结果送回原会话。**
 
 一个独立的 Python 项目：渠道适配器、持久化任务账本、可替换执行器。首个功能是 CSV 合并、去重和金额统计，无需大模型或模型 API Key。微信／飞书平台凭证由部署者保管。
@@ -18,6 +20,13 @@
 
 普通 `/merge` 按整行去重；`key=列名` 按键去重，同键内容冲突会失败，不任意保留其中一行。`group` 和 `sum` 必须成对使用，金额采用十进制计算。表头可以换序，但必须包含相同的列。
 
+合并前，先用 **`/audit key=order_id`** 检查暂存文件：返回 `audit.csv`、
+`summary.json`、`report.html`，一次列出所有冲突键、空键和完全重复记录，并标明源文件序号、
+数据记录号和原 CSV 物理行范围（支持多行单元格）。审计不生成合并结果，暂存文件继续保留；
+键检查通过后可直接 `/merge key=order_id`。需要修正时先 `/discard`，再上传修正文件。
+审计只检查去重键；金额格式仍由带 `group` / `sum` 的合并任务检查。
+`/merge` 接受任务时会消费这批暂存附件；若已合并失败，需要重新上传源文件后再审计。
+
 每个渠道账户、会话、话题和发送者有独立的附件集合。同群不同成员的文件不会自动混合。`/status` 查询近期任务；`/discard` 清空自己的待处理文件。
 
 **支持范围：** CSV；微信个人私聊的文本／文件；飞书文本／文件输入和原消息回复。暂不支持 XLSX、任意自然语言指令、微信图片／语音处理或微信群。发送文件中的代码不会被执行。
@@ -27,7 +36,7 @@
 Python 3.11+，Linux 或 macOS（Windows 可使用 WSL）。
 
 ```bash
-git clone https://github.com/crown-sports/chat-task-bridge.git
+git clone --branch v0.2.0 https://github.com/crown-sports/chat-task-bridge.git
 cd chat-task-bridge
 python3 -m venv .venv
 source .venv/bin/activate
