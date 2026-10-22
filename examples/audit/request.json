@@ -1,0 +1,1 @@
+{"mode":"audit","options":{"key":"order_id"},"inputs":[{"name":"october-a.csv","text":"order_id,amount\n1,10.00\n2,20.00\n"},{"name":"october-b.csv","text":"order_id,amount\n1,11.00\n2,20.00\n,7.00\n"}]}

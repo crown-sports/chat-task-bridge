@@ -19,6 +19,7 @@ from .storage import (
 HELP = (
     "发送 CSV 文件后，输入 /merge 合并并按整行去重；"
     "输入 /merge key=列名 按指定列去重。"
+    " /audit key=列名 检查重复与冲突（保留暂存文件）。"
     " /status 查看最近任务，/discard 清空待处理文件。"
     "文件只在同一账号、会话、话题和发送者范围内组合。"
 )
@@ -124,12 +125,19 @@ class Ledger:
                 result = TaskResult(
                     "当前仅处理 CSV 文件；图片、语音和视频未加入任务。请发送 CSV 后输入 /merge。"
                 )
-            elif command == "/merge" or command.startswith("/merge "):
+            elif command in {"/merge", "/audit"} or command.startswith(("/merge ", "/audit ")):
                 if combined:
                     message = replace(
                         message, attachments=tuple(self.store.get(a) for a in combined)
                     )
-                    self.db.execute("DELETE FROM pending WHERE scope=?", (scope,))
+                    if command == "/audit" or command.startswith("/audit "):
+                        for ref in incoming:
+                            self.db.execute(
+                                "INSERT INTO pending(scope, attachment, created) VALUES (?, ?, ?)",
+                                (scope, json.dumps(ref), time.time()),
+                            )
+                    else:
+                        self.db.execute("DELETE FROM pending WHERE scope=?", (scope,))
                     state, execution, result = "queued", "pending", None
                 else:
                     result = TaskResult("请先发送 CSV 文件，再输入 /merge。")
