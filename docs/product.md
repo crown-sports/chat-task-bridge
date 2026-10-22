@@ -28,8 +28,7 @@ from pathlib import Path
 from chatbridge.table_task import make_request, process
 
 paths = [Path("examples/orders-a.csv"), Path("examples/orders-b.csv")]
-request = make_request([(path.name, path.read_bytes()) for path in paths],
-                       "/audit key=order_id")
+request = make_request([(path.name, path.read_bytes()) for path in paths], "/audit key=order_id")
 result = process(request)
 output = Path("demo-output/local-audit")
 output.mkdir(parents=True, exist_ok=False)  # 重跑时换一个新目录，保留上次报告。
