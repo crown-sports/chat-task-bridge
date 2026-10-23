@@ -10,6 +10,7 @@ from pathlib import Path
 from .ledger import Ledger
 from .model import Channel, ExecutionUncertain, Executor, InboundMessage, TaskResult
 from .storage import private_directory
+from .table_task import TableInputError
 
 
 @contextmanager
@@ -61,6 +62,16 @@ class Bridge:
             self.ledger.complete_execution(row["id"], result)
         except (TimeoutError, ExecutionUncertain) as exc:
             self.ledger.finish(row["id"], "running", "unknown_execution", error=type(exc).__name__)
+        except TableInputError as exc:
+            auditing = message.text.strip().split(maxsplit=1)[0] == "/audit"
+            next_step = (
+                "暂存文件仍保留；只改参数可直接重试。换文件请先 /discard，再上传修正文件。"
+                if auditing
+                else "请修正后重新发送文件和 /merge 命令。"
+            )
+            self.ledger.complete_execution(
+                row["id"], TaskResult(f"任务未完成：{exc.public_message} {next_step}"), failed=True
+            )
         except Exception as exc:
             self.ledger.complete_execution(
                 row["id"],

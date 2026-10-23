@@ -2,7 +2,7 @@
 
 把几份 CSV 发进飞书或微信，先查冲突，再合并去重，把结果文件送回原会话。
 
-[English](README.en.md) · [本地处理自己的文件](docs/product.md) · [v0.2.0 预发布](https://github.com/crown-sports/chat-task-bridge/releases/tag/v0.2.0)
+[English](README.en.md) · [本地处理自己的文件](docs/product.md) · [v0.2.1 预发布](https://github.com/crown-sports/chat-task-bridge/releases/tag/v0.2.1)
 
 ![现有处理器生成的 CSV 报告：6 行输入、5 行保留、1 行重复，按月份汇总金额](docs/assets/merge-report.png)
 
@@ -17,7 +17,7 @@
 Python 3.11+，Linux 或 macOS；Windows 可用 WSL。演示不需要平台凭证或模型。
 
 ```sh
-git clone --branch v0.2.0 https://github.com/crown-sports/chat-task-bridge.git
+git clone --branch v0.2.1 https://github.com/crown-sports/chat-task-bridge.git
 cd chat-task-bridge
 python3 -m venv .venv
 source .venv/bin/activate

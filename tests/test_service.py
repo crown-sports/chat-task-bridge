@@ -206,3 +206,60 @@ def test_state_and_database_have_private_permissions(tmp_path):
     ledger.close()
     assert stat.S_IMODE(state.stat().st_mode) == 0o700
     assert stat.S_IMODE((state / "tasks.sqlite3").stat().st_mode) == 0o600
+
+
+async def test_local_csv_error_explains_the_failure_and_fixed_upload_recovers(ledger):
+    from chatbridge.executor import LocalTableExecutor
+
+    channel = FakeChannel()
+    bridge = Bridge(ledger, LocalTableExecutor(), channel, "fake", "account")
+    command = "/merge key=order_id group=month sum=amount"
+    bad = Attachment("orders.csv", b"order_id,month,amount\nA1,October,PRIVATE_BAD_AMOUNT\n")
+    failed = await bridge.accept(message("bad", command, (bad,)))
+    await bridge.drain()
+    output = channel.sent[-1][1]
+    assert "第 1 条保留记录的统计金额不是有效十进制数" in output.text
+    assert "重新发送文件" in output.text
+    assert "PRIVATE_BAD_AMOUNT" not in output.text
+    assert not output.attachments
+    assert ledger.get(failed)["execution"] == "failed"
+    corrected = Attachment("orders.csv", b"order_id,month,amount\nA1,October,12.50\n")
+    event = message("fixed", command, (corrected,))
+    succeeded = await bridge.accept(event)
+    assert await bridge.accept(event) == succeeded
+    await bridge.drain()
+    assert len(channel.sent) == 2
+    summary = next(a for a in channel.sent[-1][1].attachments if a.name == "summary.json")
+    assert json.loads(summary.content)["groups"][0]["sum"] == "12.50"
+    assert ledger.get(succeeded)["execution"] == "succeeded"
+
+
+async def test_failed_audit_keeps_files_and_supports_corrected_parameter(ledger):
+    from chatbridge.executor import LocalTableExecutor
+
+    channel = FakeChannel()
+    bridge = Bridge(ledger, LocalTableExecutor(), channel, "fake", "account")
+    files = (Attachment("orders.csv", b"order_id,amount\nA1,12.50\n"),)
+    await bridge.accept(message("audit-wrong", "/audit key=missing", files))
+    await bridge.drain()
+    assert "指定的列名不存在" in channel.sent[-1][1].text
+    assert "只改参数可直接重试" in channel.sent[-1][1].text
+    await bridge.accept(message("audit-fixed", "/audit key=order_id"))
+    await bridge.drain()
+    summary = next(a for a in channel.sent[-1][1].attachments if a.name == "summary.json")
+    assert json.loads(summary.content)["merge_key_ready"] is True
+
+
+async def test_remote_validation_payload_is_not_exposed(ledger):
+    from chatbridge.table_task import TableInputError
+
+    class RemoteErrorExecutor:
+        async def run(self, *_):
+            raise TableInputError("PROVIDER_SECRET", safe_to_display=False)
+
+    job = enqueue(ledger)
+    channel = FakeChannel()
+    await Bridge(ledger, RemoteErrorExecutor(), channel, "fake", "account").drain()
+    assert "PROVIDER_SECRET" not in channel.sent[-1][1].text
+    assert "CSV 检查未通过" in channel.sent[-1][1].text
+    assert ledger.get(job)["execution"] == "failed"

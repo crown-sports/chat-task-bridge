@@ -2,7 +2,7 @@
 
 Send CSV files through Feishu or Weixin, check conflicts, and get merged files back in the same conversation.
 
-[中文](README.md) · [Local file processing](docs/product.md) · [v0.2.0 prerelease](https://github.com/crown-sports/chat-task-bridge/releases/tag/v0.2.0)
+[中文](README.md) · [Local file processing](docs/product.md) · [v0.2.1 prerelease](https://github.com/crown-sports/chat-task-bridge/releases/tag/v0.2.1)
 
 ![Generated CSV report: six input rows, five retained rows, one duplicate, with monthly totals](docs/assets/merge-report.png)
 
@@ -18,7 +18,7 @@ stop the merge instead of silently choosing a winner.
 Python 3.11+ on Linux or macOS; use WSL on Windows. No platform credentials or model required.
 
 ```sh
-git clone --branch v0.2.0 https://github.com/crown-sports/chat-task-bridge.git
+git clone --branch v0.2.1 https://github.com/crown-sports/chat-task-bridge.git
 cd chat-task-bridge
 python3 -m venv .venv
 source .venv/bin/activate
