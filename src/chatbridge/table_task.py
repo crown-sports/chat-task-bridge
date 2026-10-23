@@ -26,7 +26,11 @@ USAGE = (
 
 
 class TableInputError(ValueError):
-    """A safe, user-facing validation failure without source data."""
+    """A validation failure whose local messages contain no source data."""
+
+    def __init__(self, message: str, *, safe_to_display: bool = True):
+        super().__init__(message)
+        self.public_message = message if safe_to_display else "CSV 检查未通过，请先在本地核对文件。"
 
 
 def parse_options(text: str) -> dict[str, str]:

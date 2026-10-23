@@ -117,7 +117,9 @@ class OpenSandboxTableExecutor:
                 try:
                     response = json.loads(content)
                     if response.get("ok") is not True:
-                        raise table_task.TableInputError(response.get("error", "CSV 处理失败。"))
+                        raise table_task.TableInputError(
+                            response.get("error", "CSV 处理失败。"), safe_to_display=False
+                        )
                     return _task_result(response["result"], audit=request["mode"] == "audit")
                 except (
                     KeyError,
