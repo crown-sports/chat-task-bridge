@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 — 2026-10-23 (prerelease)
 
 Show the specific safe CSV validation error in local task replies. Failed audits explain when parameters can be retried against retained files and when files must be replaced. Remote error payloads and unexpected exceptions remain hidden.
 
